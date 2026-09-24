@@ -288,11 +288,15 @@ export class Profile {
     const rules = list.childrenNamed('Rule');
     if (!rules[from]) throw new Error(`no rule at index ${from}`);
     const target = Math.max(0, Math.min(rules.length - 1, to));
+    if (from === target) return true;
+
     const nodes = list.children;
-    const src = nodes.indexOf(rules[from]);
-    const [node] = nodes.splice(src, 1);
+    const [node] = nodes.splice(nodes.indexOf(rules[from]), 1);
     const dstNode = nodes.indexOf(rules[target]);
-    nodes.splice(dstNode, 0, node);
+    // After removing the source, the target itself has shifted for downward
+    // moves. Insert after it when moving down, before it when moving up, so
+    // the moved rule lands on index `target` in both directions.
+    nodes.splice(dstNode + (from < target ? 1 : 0), 0, node);
     return true;
   }
 

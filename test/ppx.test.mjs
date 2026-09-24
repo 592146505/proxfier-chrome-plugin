@@ -123,6 +123,38 @@ check('a Proxy rule without an id is rejected', (() => {
   }
 })(), 'rejected');
 
+// --- moveRule lands on the requested index in both directions
+const mover = Profile.parse(FIXTURE);
+mover.moveRule(2, 0);
+check('moveRule up lands on the target index', mover.rules().map((r) => r.name), [
+  'codex-proxy',
+  'Localhost',
+  'proxys',
+  'Default',
+]);
+mover.moveRule(0, 3);
+check('moveRule down lands on the target index', mover.rules().map((r) => r.name), [
+  'Localhost',
+  'proxys',
+  'Default',
+  'codex-proxy',
+]);
+mover.moveRule(1, 1);
+check('moveRule to the same index is a no-op', mover.rules().map((r) => r.name), [
+  'Localhost',
+  'proxys',
+  'Default',
+  'codex-proxy',
+]);
+check('moveRule clamps an out-of-range target', (() => {
+  try {
+    mover.moveRule(0, 99);
+    return mover.rules().map((r) => r.name);
+  } catch (err) {
+    return err.message;
+  }
+})(), ['proxys', 'Default', 'codex-proxy', 'Localhost']);
+
 // --- the built-in skeleton is valid and parseable
 const empty = Profile.empty();
 check('emptyProfileXml parses', empty.rules().map((r) => r.name), ['Localhost', 'Default']);
