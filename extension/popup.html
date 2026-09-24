@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="ui.css">
+  <title>Proxifier Rules</title>
+</head>
+<body class="popup">
+  <header>
+    <h1>Proxifier Rules</h1>
+    <span id="health" class="tag">…</span>
+    <button id="settings" title="Options">⚙</button>
+  </header>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <section>
+    <div class="row">
+      <div style="flex:1">
+        <label for="profile">Profile</label>
+        <select id="profile"></select>
+      </div>
+      <button id="reload" title="Ask Proxifier to pull the profile again">Reload ↻</button>
+    </div>
+  </section>
+
+  <section>
+    <label>Current tab</label>
+    <div class="row">
+      <span id="host" class="mono" style="flex:1; overflow:hidden; text-overflow:ellipsis">—</span>
+      <button id="quick" class="primary" disabled>Add rule</button>
+    </div>
+  </section>
+
+  <section id="editor" hidden>
+    <div class="grid">
+      <div><label for="f-name">Rule name</label><input id="f-name"></div>
+      <div><label for="f-action">Action</label><select id="f-action"></select></div>
+      <div><label for="f-targets">Targets (a.com; *.b.com; 1.2.3.4:443)</label><input id="f-targets"></div>
+      <div><label for="f-apps">Applications</label><input id="f-apps" value="Google Chrome"></div>
+    </div>
+    <div id="action-hint" class="muted" hidden style="margin-top:6px"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="save" class="primary">Save rule</button>
+      <button id="cancel">Cancel</button>
+    </div>
+  </section>
+
+  <section>
+    <label>Rules <span class="muted" id="rule-count"></span></label>
+    <ul class="rules" id="rules"></ul>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

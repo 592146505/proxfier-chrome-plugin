@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Proxifier Rule Manager",
+  "version": "0.1.0",
+  "description": "Manage Proxifier profiles and proxification rules without leaving Chrome.",
+  "permissions": ["storage", "tabs", "activeTab", "contextMenus"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Proxifier Rules"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

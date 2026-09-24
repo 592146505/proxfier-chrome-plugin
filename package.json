@@ -1,0 +1,24 @@
+{
+  "name": "proxifier-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Manage Proxifier profiles/rules from a Chrome extension",
+  "scripts": {
+    "serve": "node bridge/cli.js serve",
+    "doctor": "node bridge/cli.js doctor",
+    "link": "node bridge/cli.js link",
+    "import": "node bridge/cli.js import",
+    "install-agent": "node bridge/cli.js install-agent",
+    "uninstall-agent": "node bridge/cli.js uninstall-agent",
+    "status": "node bridge/cli.js status",
+    "test": "node test/ppx.test.mjs && node test/connection.test.mjs && node test/actions.test.mjs && node test/smoke.mjs",
+    "test:live": "node test/e2e-live.mjs"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

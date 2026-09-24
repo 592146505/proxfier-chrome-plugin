@@ -1,0 +1,24 @@
+{
+  "_note": "Captured from Proxifier's Proxification Rules window via Accessibility on 2026-09-23, before the profile was overwritten by the bridge test. Reconstructed field-by-field; action text was read from the Action column.",
+  "_source": "Profile > Proxification Rules... (14 rows)",
+  "capturedAt": "2026-09-23T15:06+08:00",
+  "proxiesInferred": [
+    { "name": "verge-mihomo", "type": "SOCKS5", "host": "127.0.0.1", "port": 7890 }
+  ],
+  "rules": [
+    { "enabled": true,  "name": "verge-mihomo [auto-created]", "applications": ["verge-mihomo"], "targets": [], "ports": [], "action": "Direct" },
+    { "enabled": true,  "name": "Localhost", "applications": [], "targets": ["localhost","127.0.0.1","::1","%ComputerName%"], "ports": [], "action": "Direct" },
+    { "enabled": true,  "name": "no_proxys", "applications": [], "targets": ["*.hybgzs.com","*.lvmhsh.cn"], "ports": [], "action": "Direct" },
+    { "enabled": true,  "name": "proxys", "applications": [], "targets": ["*.unity.*","*.github.com","*.githubusercontent.com","*.openai.com","*.chatgpt.com","*.rs","releases.astral.sh","*.youtu.be","*.google.com","*.google-analytics.com","*.googleusercontent.com","*.jetbrains.com","*.v2ex.*","*.linux.do","*.yandexcloud.net","*.amplicode.ru"], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "codex-proxy", "applications": ["Codex.app","Codex","Codex Helper","Codex (Renderer)","Codex (Service)","com.openai.codex","ChatGPT.app","ChatGPT","com.openai.chat","SkyComputerUseClient"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "steam-proxy", "applications": ["Steam.app","Steam","com.valvesoftware.steam"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "unity-proxy", "applications": ["Unity.app","Unity","com.unity3d.UnityEditor5.x","Unity Hub.app","Unity Hub","com.unity3d.unityhub"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "telegram", "applications": ["Telegram.app","Telegram","ru.keepcoder.Telegram"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": false, "name": "hermes", "applications": ["Hermes.app","Hermes","com.nousresearch.hermes.setup"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "Terminal", "applications": ["curl","git","uv","node"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "homebrew-proxy", "applications": ["Homebrew.app","Homebrew","sh.brew.app"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": false, "name": "microsoft-proxy", "applications": ["Microsoft OneNote.app","Microsoft OneNote","com.microsoft.onenote.mac"], "targets": [], "ports": [], "action": "Proxy SOCKS5 127.0.0.1:7890" },
+    { "enabled": true,  "name": "New", "applications": ["GlobalProtect.app","GlobalProtect","com.paloaltonetworks.GlobalProtect.client"], "targets": [], "ports": [], "action": "Direct" },
+    { "enabled": true,  "name": "Default", "applications": [], "targets": [], "ports": [], "action": "Direct" }
+  ]
+}

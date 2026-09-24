@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="ui.css">
+  <title>Proxifier Rule Manager — Options</title>
+</head>
+<body class="page">
+  <header>
+    <h1>Proxifier Rule Manager</h1>
+    <span id="health" class="tag">…</span>
+  </header>
+
+  <div id="toast" class="toast" hidden></div>
+  <div id="notice" class="toast err" hidden></div>
+
+  <section>
+    <h2 style="margin-top:0">Bridge connection</h2>
+    <div class="grid">
+      <div>
+        <label for="bridgeUrl">Bridge URL (run <code>npm run serve</code>)</label>
+        <input id="bridgeUrl" placeholder="http://127.0.0.1:47653">
+      </div>
+      <div>
+        <label for="token">Token — paste the whole URL from <code>npm run link</code>, it is parsed for you</label>
+        <input id="token" placeholder="http://127.0.0.1:47653/t/&lt;token&gt;/">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="save-conn" class="primary">Save &amp; test</button>
+      <button id="test">Test</button>
+    </div>
+    <p class="muted" style="margin:10px 0 0">
+      Configure Proxifier once: <b>File → Profile Auto Update…</b>, tick the box, paste the
+      <b>Proxifier URL</b> below, pick <b>Folder with multiple profiles</b>, click <b>Update Now</b>.
+    </p>
+    <div class="row" style="margin-top:6px">
+      <input id="proxifier-url" class="mono" readonly>
+      <button id="copy">Copy</button>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Profiles</h2>
+    <div class="row">
+      <select id="profiles" style="flex:1"></select>
+      <button id="reload" title="Ask Proxifier to re-pull the profile">Reload Proxifier ↻</button>
+      <button id="delete" class="danger">Delete</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="new-name" placeholder="new profile name">
+      <button id="create">Create</button>
+    </div>
+    <p class="muted" style="margin:8px 0 0">
+      Profiles live in the bridge store and are pushed to Proxifier over HTTP, so every edit
+      here is the source of truth. Old revisions are snapshotted automatically.
+    </p>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Proxies &amp; chains <span class="muted" id="chain-count"></span></h2>
+    <ul class="rules" id="chains"></ul>
+    <p class="muted" style="margin:8px 0 0">
+      Chain ids are what a rule's <code>Action type="Proxy"</code> points at. Edit these in
+      Proxifier itself — the bridge only reads them.
+    </p>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Backups <span class="muted" id="backup-count"></span></h2>
+    <ul class="rules" id="backups"></ul>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Raw profile XML</h2>
+    <textarea id="raw" rows="14" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="raw-load">Load</button>
+      <button id="raw-save" class="primary">Validate &amp; save</button>
+    </div>
+  </section>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
