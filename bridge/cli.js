@@ -6,8 +6,9 @@ import { execFileSync } from 'node:child_process';
 import { loadConfig, saveConfig, APP_DIR, PROFILES_DIR, baseUrl, DEFAULT_PORT } from './config.js';
 import * as store from './store.js';
 import { createServer } from './server.js';
-import { triggerReload, probeAccessibility } from './reload.js';
+import { triggerReload, probeReload } from './reload.js';
 import { Profile } from './ppx.js';
+import { findProxifierExe, isWindows, startupVbsPath } from './platform.js';
 
 const AGENT_LABEL = 'com.proxifier-bridge';
 const AGENT_PLIST = path.join(os.homedir(), 'Library', 'LaunchAgents', `${AGENT_LABEL}.plist`);
@@ -64,7 +65,12 @@ async function cmdServe(args) {
       timer = setTimeout(async () => {
         if (running) return;
         running = true;
-        const reload = await triggerReload();
+        const reload = await triggerReload(isWindows() ? {
+          exe: findProxifierExe({ cfg, exists: fs.existsSync }),
+          profilePath: cfg.activeProfile && store.exists(cfg.activeProfile)
+            ? store.profilePath(cfg.activeProfile)
+            : null,
+        } : undefined);
         state.lastReload = { at: new Date().toISOString(), trigger: 'watch', ...reload };
 
         if (reload.ok) {
@@ -117,22 +123,34 @@ async function cmdDoctor() {
   for (const p of profiles) line(p.name, `${p.bytes} bytes, ${p.modified}`);
 
   console.log('\nproxifier');
-  let running = false;
-  try {
-    running = execFileSync('pgrep', ['-x', 'Proxifier'], { encoding: 'utf8' }).trim().length > 0;
-  } catch {
-    running = false;
-  }
-  line('running', running ? 'yes' : 'NO — start Proxifier first');
-  const ax = await probeAccessibility();
-  line('accessibility', ax.ok ? `ok (${ax.menus})` : `FAILED: ${ax.message}`);
-  if (!ax.ok) {
-    console.log('\n  -> System Settings > Privacy & Security > Accessibility:');
-    console.log('     add the app that runs the bridge (Terminal for `serve`, or node).');
+  if (isWindows()) {
+    const exe = findProxifierExe({ cfg, exists: fs.existsSync });
+    const probe = await probeReload({ exe });
+    line('executable', exe ?? 'NOT FOUND');
+    line('running', probe.running ? 'yes' : 'no (silent-load can start it)');
+    line('reload', probe.ok ? `ok (${probe.mechanism})` : `FAILED: ${probe.message}`);
+    if (!probe.ok) console.log(`  -> ${probe.hint ?? 'install Proxifier v4 for Windows'}`);
+  } else {
+    let running = false;
+    try {
+      running = execFileSync('pgrep', ['-x', 'Proxifier'], { encoding: 'utf8' }).trim().length > 0;
+    } catch {
+      running = false;
+    }
+    line('running', running ? 'yes' : 'NO — start Proxifier first');
+    const probe = await probeReload();
+    line('accessibility', probe.ok ? `ok (${probe.menus})` : `FAILED: ${probe.message}`);
+    if (!probe.ok) {
+      console.log('\n  -> System Settings > Privacy & Security > Accessibility:');
+      console.log('     add the app that runs the bridge (Terminal for `serve`, or node).');
+    }
   }
 
   console.log('\nnext step');
   console.log(`  paste into Proxifier's Profile Auto Update URL:\n  ${baseUrl(cfg)}/t/${cfg.token}/`);
+  if (isWindows()) {
+    console.log('  or click Reload in the extension after setting an active profile.');
+  }
 }
 
 function cmdImport(args) {
@@ -166,6 +184,43 @@ const xmlEsc = (s) =>
 
 function cmdInstallAgent() {
   const cfg = loadConfig();
+  if (isWindows()) {
+    const vbs = startupVbsPath({ appData: process.env.APPDATA });
+    if (!process.env.APPDATA) throw new Error('APPDATA is not set; run this from a normal Windows shell');
+
+    fs.mkdirSync(path.dirname(vbs), { recursive: true });
+    const quote = (value) => `"${value}"`;
+    const command = [
+      quote(process.execPath),
+      quote(CLI),
+      'serve',
+      '>>',
+      quote(path.join(APP_DIR, 'bridge.out.log')),
+      '2>>',
+      quote(path.join(APP_DIR, 'bridge.err.log')),
+    ].join(' ');
+    const vbsString = (value) => `"${String(value).replace(/"/g, '""')}"`;
+    fs.writeFileSync(vbs, [
+      'Set shell = CreateObject("WScript.Shell")',
+      `command = ${vbsString(command)}`,
+      'shell.Run "%ComSpec% /d /c " & command, 0, False',
+      '',
+    ].join('\r\n'), { mode: 0o700 });
+
+    // Starting once makes installation immediately useful; Startup takes over
+    // after the next sign-in.
+    execFileSync('wscript.exe', [vbs]);
+
+    console.log(`installed and started ${AGENT_LABEL}`);
+    console.log(`launcher : ${vbs}`);
+    console.log(`node     : ${process.execPath}`);
+    console.log(`logs     : ${path.join(APP_DIR, 'bridge.out.log')}`);
+    console.log(`           ${path.join(APP_DIR, 'bridge.err.log')}`);
+    console.log(`\nProxifier URL: ${baseUrl(cfg)}/t/${cfg.token}/`);
+    console.log('\nCheck it with: npm run status');
+    return;
+  }
+
   fs.mkdirSync(path.dirname(AGENT_PLIST), { recursive: true });
 
   // KeepAlive + RunAtLoad means launchd starts this at login and restarts it if
@@ -224,7 +279,7 @@ function cmdInstallAgent() {
 
   // The auto-reload click runs through the Accessibility API, and a launchd job
   // is its own TCC subject, so it needs its own grant.
-  probeAccessibility().then((ax) => {
+  probeReload().then((ax) => {
     if (ax.ok) return;
     console.log('\nNote: this node binary cannot drive the Accessibility API yet, so');
     console.log('      automatic reload is off. Everything still syncs, you just need');
@@ -234,7 +289,35 @@ function cmdInstallAgent() {
   });
 }
 
-function cmdAgentStatus() {
+async function cmdAgentStatus() {
+  const currentCfg = loadConfig();
+  if (isWindows()) {
+    const vbs = startupVbsPath({ appData: process.env.APPDATA });
+    console.log(`label      : ${AGENT_LABEL}`);
+    console.log(`launcher   : ${vbs}${fs.existsSync(vbs) ? '' : '   (NOT INSTALLED!)'}`);
+    console.log(`port       : ${currentCfg.port}`);
+
+    let healthy = false;
+    try {
+      const res = await fetch(`${baseUrl(currentCfg)}/api/health`);
+      healthy = res.ok && (await res.json()).ok === true;
+    } catch {
+      healthy = false;
+    }
+    console.log(`state      : ${healthy ? 'running' : 'not running'}`);
+    if (!healthy) {
+      const errLog = path.join(APP_DIR, 'bridge.err.log');
+      console.log(`logs       : ${path.join(APP_DIR, 'bridge.out.log')}`);
+      console.log(`             ${errLog}`);
+      if (fs.existsSync(errLog)) {
+        const tail = fs.readFileSync(errLog, 'utf8').trim().split('\n').slice(-8).join('\n');
+        console.log('\nrecent stderr:');
+        console.log(tail || '(empty)');
+      }
+    }
+    return;
+  }
+
   const target = `gui/${process.getuid()}/${AGENT_LABEL}`;
   let out = '';
   try {
@@ -274,6 +357,13 @@ function cmdAgentStatus() {
 }
 
 function cmdUninstallAgent() {
+  if (isWindows()) {
+    const vbs = startupVbsPath({ appData: process.env.APPDATA });
+    if (fs.existsSync(vbs)) fs.unlinkSync(vbs);
+    console.log(`removed ${AGENT_LABEL}`);
+    console.log('Stop a currently running bridge with Ctrl+C, or end node.exe in Task Manager.');
+    return;
+  }
   try {
     execFileSync('launchctl', ['bootout', `gui/${process.getuid()}`, AGENT_PLIST], { stdio: 'ignore' });
   } catch {

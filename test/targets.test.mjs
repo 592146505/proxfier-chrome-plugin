@@ -3,7 +3,7 @@
  *
  *   node test/targets.test.mjs
  */
-import { hostVariants, mergeTargets } from '../extension/targets.js';
+import { defaultBrowserApp, hostVariants, mergeTargets } from '../extension/targets.js';
 
 let pass = 0;
 let fail = 0;
@@ -26,6 +26,12 @@ check('a www host keeps the exact form but wildcards the bare host', hostVariant
 ]);
 check('an empty host yields no targets', hostVariants(''), []);
 check('hostnames are lowercased', hostVariants('GitHub.COM'), ['github.com', '*.github.com']);
+check('Windows Chrome is targeted as chrome.exe', defaultBrowserApp(
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36',
+), 'chrome.exe');
+check('macOS Chrome keeps its application name', defaultBrowserApp(
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/125 Safari/537.36',
+), 'Google Chrome');
 
 check('merge appends to an empty rule', mergeTargets([], 'github.com'), {
   targets: ['github.com', '*.github.com'],

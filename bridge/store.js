@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PROFILES_DIR, BACKUPS_DIR } from './config.js';
 import { Profile } from './ppx.js';
+import { canCreateEmptyProfile } from './platform.js';
 
 export { PROFILES_DIR, BACKUPS_DIR };
 
@@ -92,13 +93,16 @@ export function save(name, profile, opts) {
  * rejects a profile it cannot reconcile — so the only safe base is one
  * Proxifier itself produced (or one we round-tripped from it).
  */
-export function create(name, { from = null, empty = false } = {}) {
+export function create(name, { from = null, empty = false, platform = process.platform } = {}) {
   assertProfileName(name);
   if (exists(name)) throw new Error(`profile "${name}" already exists`);
 
   const source = empty
     ? null
     : (from ?? listProfiles().find((p) => p.name !== name)?.name ?? null);
+  if (!source && !canCreateEmptyProfile(platform)) {
+    throw new Error('no source profile available — import a profile exported by Proxifier first');
+  }
   const profile = source ? Profile.parse(readRaw(source)) : Profile.empty();
   fs.writeFileSync(profilePath(name), profile.toXml(), { mode: 0o600 });
   return profile;

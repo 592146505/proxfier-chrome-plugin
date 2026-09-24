@@ -12,7 +12,7 @@
     "install-agent": "node bridge/cli.js install-agent",
     "uninstall-agent": "node bridge/cli.js uninstall-agent",
     "status": "node bridge/cli.js status",
-    "test": "node test/syntax.mjs && node test/ppx.test.mjs && node test/connection.test.mjs && node test/targets.test.mjs && node test/actions.test.mjs && node test/smoke.mjs",
+    "test": "node test/syntax.mjs && node test/platform.test.mjs && node test/ppx.test.mjs && node test/connection.test.mjs && node test/targets.test.mjs && node test/actions.test.mjs && node test/smoke.mjs",
     "test:live": "node test/e2e-live.mjs"
   },
   "dependencies": {

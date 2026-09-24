@@ -57,6 +57,34 @@ fetches them. The bridge therefore never needs Full Disk Access, and
 - Because the bridge owns the files, backups and validation are ours to
   provide — see `store.js`.
 
+## Windows differences
+
+Proxifier v4 for Windows is not sandboxed the way the macOS app is, and it
+exposes two mechanisms that make the bridge easier:
+
+- `File → Profile Auto Update…`, with the same folder-over-HTTP mode used on
+  macOS.
+- `Proxifier.exe <profile.ppx> silent-load`, which loads a profile into the
+  running instance or starts Proxifier when it is not running.
+
+The bridge therefore uses HTTP for the Proxifier-facing channel and
+`silent-load` for immediate reloads. No Accessibility permission is needed.
+
+Platform-specific locations:
+
+- Profiles, backups, and config live in `%APPDATA%\ProxifierBridge`.
+- Login startup is a VBS file in the user's Startup folder; it launches the
+  bridge hidden and redirects stdout/stderr to the bridge log files.
+- `Proxifier.exe` is looked up in the standard Program Files directories; a
+  custom `proxifierExe` value in `config.json` takes precedence.
+- On Windows the extension targets `chrome.exe` in rule Application lists;
+  macOS continues to use `Google Chrome`.
+
+The built-in empty profile remains macOS-specific because it carries
+`platform="MacOSX"` and guessed encryption fields. On Windows, the first stored
+profile must come from a profile exported by Windows Proxifier; new profiles can
+then clone that imported profile.
+
 ## Components
 
 ### `bridge/xmldom.js`

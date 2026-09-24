@@ -32,8 +32,8 @@ refills from the bridge on every update.
 
 ## Requirements
 
-- Proxifier 3.x for macOS (verified against 3.15.0)
-- Node.js ≥ 20
+- Proxifier 3.x for macOS (verified against 3.15.0), or Proxifier v4 for Windows
+- Node.js ≥ 20.11.0
 - Google Chrome
 
 ## Setup
@@ -62,6 +62,50 @@ Then, **once**, in Proxifier:
 
 Load the extension: `chrome://extensions` → Developer mode → *Load unpacked* →
 pick `extension/`.
+
+### Windows
+
+On Windows, first export your real profile from Proxifier (`File → Export…`),
+then import it before creating anything else:
+
+```powershell
+npm install
+npm run import -- .\real.ppx --as Work
+npm run doctor
+npm run serve
+```
+
+Data and logs live under `%APPDATA%\ProxifierBridge`. The bridge also looks for
+`Proxifier.exe` in the standard Program Files locations; if your copy is
+portable, add its full path as `proxifierExe` in
+`%APPDATA%\ProxifierBridge\config.json`:
+
+```json
+{
+  "proxifierExe": "D:\\Tools\\Proxifier\\Proxifier.exe"
+}
+```
+
+Windows reload uses Proxifier v4's official command line:
+
+```text
+Proxifier.exe <profile.ppx> silent-load
+```
+
+This loads the profile into a running Proxifier, or starts Proxifier if needed.
+Profile Auto Update is still available, but `silent-load` is the primary
+automatic path and needs no Accessibility-style permission.
+
+For login startup, Windows uses a small VBS file in the user's Startup folder:
+
+```powershell
+npm run install-agent
+npm run status
+npm run uninstall-agent
+```
+
+The VBS launches the bridge hidden through `cmd.exe`, and redirects its output
+to the same `bridge.out.log` and `bridge.err.log` files used on macOS.
 
 Then connect it — `npm run link` prints a single URL:
 
@@ -141,7 +185,8 @@ the options page.
 
 ## Reload
 
-Three layers, best-effort in this order:
+On Windows, writes trigger `Proxifier.exe <active-profile.ppx> silent-load`
+directly. On macOS, the layers are best-effort in this order:
 
 1. `fs.watch` on `profiles/` → `Update Now` clicked over the Accessibility API
    (needs Accessibility permission for whatever runs the bridge).
@@ -156,9 +201,9 @@ is a no-op: the running configuration is left alone.
 The bridge **replaces the whole profile** on each pull, so start from a profile
 Proxifier authored rather than an empty one:
 
-1. In Proxifier: `File → Export…` to e.g. `~/Documents/real.ppx`. It asks for a
-   password-encryption mode; pick `account` unless you have a reason not to.
-2. `node bridge/cli.js import ~/Documents/real.ppx --as Bridge`
+1. In Proxifier: `File → Export…` to e.g. `~/Documents/real.ppx` (macOS) or
+   `C:\Users\<you>\Documents\real.ppx` (Windows).
+2. `node bridge/cli.js import <path-to>/real.ppx --as Bridge`
 3. Set it active: the extension options do this when you pick a profile
    (`POST /api/active`).
 4. `File → Profile Auto Update…` → tick, paste the Proxifier URL, *Folder with
@@ -177,8 +222,9 @@ bridge/
   ppx.js        profile model — rules, proxies, chains
   xmldom.js     order-preserving XML DOM (round-trip safe)
   store.js      atomic writes, snapshots, restore
-  reload.js     Accessibility-driven "Update Now"
-  config.js     port + token
+  reload.js     Windows silent-load; macOS Accessibility-driven "Update Now"
+  platform.js   platform paths, Proxifier.exe lookup, startup launcher
+  config.js     port + token + active profile
 extension/
   background.js service worker; owns all bridge traffic
   popup.*       per-tab rule editing
@@ -205,9 +251,9 @@ test/
 | command | purpose |
 |---|---|
 | `npm run serve` | run the bridge in the foreground |
-| `npm run install-agent` | run it at login via LaunchAgent |
-| `npm run status` | is the login agent loaded and running? |
-| `npm run uninstall-agent` | remove the LaunchAgent |
+| `npm run install-agent` | run it at login (LaunchAgent on macOS, Startup VBS on Windows) |
+| `npm run status` | is the login agent installed and running? |
+| `npm run uninstall-agent` | remove the login launcher |
 | `npm run doctor` | diagnose config, profiles, permissions |
 | `npm run import -- file.ppx --as Work` | import an exported profile |
 | `node bridge/cli.js export Work --out ./Work.ppx` | export a stored profile |

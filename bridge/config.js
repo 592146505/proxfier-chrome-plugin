@@ -2,13 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { appDir } from './platform.js';
 
-export const APP_DIR = path.join(
-  os.homedir(),
-  'Library',
-  'Application Support',
-  'ProxifierBridge',
-);
+export const APP_DIR = appDir({ platform: process.platform, env: process.env, homedir: os.homedir() });
 
 export const PROFILES_DIR = path.join(APP_DIR, 'profiles');
 export const BACKUPS_DIR = path.join(APP_DIR, 'backups');

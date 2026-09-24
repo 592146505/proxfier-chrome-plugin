@@ -17,6 +17,11 @@ export function hostVariants(host) {
   return [value, `*.${value.replace(/^www\./, '')}`];
 }
 
+/** Proxifier identifies Chrome by its executable name, which differs by OS. */
+export function defaultBrowserApp(ua = navigator.userAgent) {
+  return /Windows/i.test(String(ua ?? '')) ? 'chrome.exe' : 'Google Chrome';
+}
+
 /** Append the host variants to an existing Targets list, deduplicating. */
 export function mergeTargets(existing, host) {
   const targets = [...(existing ?? [])];

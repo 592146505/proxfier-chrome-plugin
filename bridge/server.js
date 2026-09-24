@@ -8,10 +8,12 @@
  *  2. Extension-facing  (/api/...)         -- JSON, requires X-Bridge-Token.
  */
 import http from 'node:http';
+import fs from 'node:fs';
 import { URL } from 'node:url';
 import * as store from './store.js';
 import { Profile } from './ppx.js';
-import { triggerReload, probeAccessibility } from './reload.js';
+import { triggerReload, probeReload } from './reload.js';
+import { findProxifierExe } from './platform.js';
 import { baseUrl, PROFILES_DIR, saveConfig } from './config.js';
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' };
@@ -164,13 +166,20 @@ export function createServer(cfg, { persist = true } = {}) {
       }
 
       if (resource === 'reload' && req.method === 'POST') {
-        const result = await triggerReload();
+        // Windows needs the profile file (silent-load); macOS ignores both and
+        // clicks Update Now over the Accessibility API.
+        const result = await triggerReload({
+          exe: findProxifierExe({ cfg, exists: fs.existsSync }),
+          profilePath: cfg.activeProfile && store.exists(cfg.activeProfile)
+            ? store.profilePath(cfg.activeProfile)
+            : null,
+        });
         state.lastReload = { at: new Date().toISOString(), ...result };
         return send(res, 200, state.lastReload, cors);
       }
 
       if (resource === 'doctor' && req.method === 'GET') {
-        return send(res, 200, { accessibility: await probeAccessibility() }, cors);
+        return send(res, 200, { reload: await probeReload({ exe: findProxifierExe({ cfg, exists: fs.existsSync }) }) }, cors);
       }
 
       if (resource === 'profiles' && !profileName) {

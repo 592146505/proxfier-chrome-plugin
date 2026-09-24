@@ -4,7 +4,7 @@
  * The popup and options pages never talk to the bridge directly, so the token
  * lives in exactly one place and CORS/permission handling stays in one file.
  */
-import { hostVariants } from './targets.js';
+import { defaultBrowserApp, hostVariants } from './targets.js';
 
 const DEFAULTS = { bridgeUrl: 'http://127.0.0.1:47653', token: '' };
 
@@ -97,7 +97,7 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
       rule: {
         name: host,
         targets: hostVariants(host),
-        applications: ['Google Chrome'],
+        applications: [defaultBrowserApp()],
         action: { type: 'Proxy', id: target.id },
       },
     },
