@@ -123,6 +123,8 @@ scoped to that bundle rather than to node.
 
 - Click the toolbar icon → it shows the current tab's host and the rules of the
   selected profile. **Add rule** prefills targets from the current site.
+- To file the current site under an existing rule, click **＋** on that rule:
+  the exact host and its wildcard form are appended to its Targets — no typing.
 - Toggle a rule with ●/○, edit with ✎, delete with ✕.
 - A rule's **Action** can be `Direct`, `Block`, or a proxy/chain. The dropdown
   lists every chain *and* every proxy in the profile, so a profile that has

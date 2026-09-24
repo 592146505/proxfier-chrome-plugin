@@ -1,4 +1,5 @@
 import { actionOptions, actionValue, hasProxyTargets, parseActionValue } from './actions.js';
+import { hostVariants, mergeTargets } from './targets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -113,7 +114,17 @@ function renderRules(rules) {
     del.title = 'Delete';
     del.onclick = () => deleteRule(index);
 
-    li.append(idx, body, toggle, edit, del);
+    const parts = [idx, body];
+    if (state.host) {
+      const addHost = document.createElement('button');
+      addHost.className = 'add';
+      addHost.textContent = '＋';
+      addHost.title = `Add ${state.host} and ${hostVariants(state.host)[1]} to this rule`;
+      addHost.onclick = () => addHostToRule(index, rule);
+      parts.push(addHost);
+    }
+    parts.push(toggle, edit, del);
+    li.append(...parts);
     list.append(li);
   });
 }
@@ -195,6 +206,21 @@ async function deleteRule(index) {
   renderRules(res.data.rules);
 }
 
+/** One-click "put the current site into this existing rule" — no typing. */
+async function addHostToRule(index, rule) {
+  const { targets, added } = mergeTargets(rule.targets ?? [], state.host);
+  if (!added) {
+    return toast(`"${rule.name}" already covers ${state.host}`, 'ok');
+  }
+  const res = await api(`/profiles/${encodeURIComponent(state.profile)}/rules/${index}`, {
+    method: 'PATCH',
+    body: { patch: { targets } },
+  });
+  if (!res.ok) return toast(res.error, 'err');
+  toast(`Added ${state.host} to "${rule.name}"`);
+  await loadProfile();
+}
+
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   try {
@@ -221,12 +247,11 @@ async function init() {
   };
 
   $('#quick').onclick = () => {
-    const bare = state.host.replace(/^www\./, '');
     // Prefer a chain, else a bare proxy, else leave it Direct.
     const target = state.chains[0] ?? state.proxies[0];
     openEditor({
-      name: bare,
-      targets: [state.host, `*.${bare}`],
+      name: state.host.replace(/^www\./, ''),
+      targets: hostVariants(state.host),
       applications: ['Google Chrome'],
       action: target ? { type: 'Proxy', id: target.id } : { type: 'Direct' },
     });
