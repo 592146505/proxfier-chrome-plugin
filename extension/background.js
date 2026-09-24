@@ -79,12 +79,12 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
 
   // Pick a proxy/chain that actually exists in the active profile. A hardcoded
   // id would create a rule pointing at a chain the profile does not define.
-  const info = await api(`/profiles/${encodeURIComponent(activeProfile)}`);
-  if (!info.ok) {
-    await badge(info.error, '#e5534b');
+  const profile = await api(`/profiles/${encodeURIComponent(activeProfile)}`);
+  if (!profile.ok) {
+    await badge(profile.error, '#e5534b');
     return;
   }
-  const target = info.data.chains?.[0] ?? info.data.proxies?.[0] ?? null;
+  const target = profile.data.chains?.[0] ?? profile.data.proxies?.[0] ?? null;
   if (!target?.id) {
     await badge('profile has no proxy or chain — add one in Proxifier', '#d29922');
     return;
