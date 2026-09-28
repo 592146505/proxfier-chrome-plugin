@@ -52,6 +52,18 @@ export function load(name) {
   return Profile.parse(readRaw(name));
 }
 
+/**
+ * The profile Proxifier should receive.
+ *
+ * Proxifier pulls profiles from profiles/ over HTTP, so this is the only
+ * content it ever sees. Serving the normalised form means a correction that
+ * lives only in the model (list quoting, the DNS auto switch) reaches the
+ * client on the next pull, instead of waiting for the next save to persist it.
+ */
+export function readNormalized(name) {
+  return Profile.parse(readRaw(name)).toXml();
+}
+
 function snapshot(name, xml, reason) {
   const dir = path.join(BACKUPS_DIR, assertProfileName(name));
   fs.mkdirSync(dir, { recursive: true });

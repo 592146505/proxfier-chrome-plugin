@@ -26,7 +26,7 @@ export function emptyProfileXml({ version = '101', productId = '2', productMinVe
 <ProxifierProfile version="${version}" platform="MacOSX" product_id="${productId}" product_minver="${productMinVer}">
   <Options>
     <Resolve>
-      <AutoModeDetection enabled="true"/>
+      <AutoModeDetection enabled="false"/>
       <ViaProxy enabled="false">
         <TryLocalDnsFirst enabled="false"/>
       </ViaProxy>
@@ -217,13 +217,25 @@ export class Profile {
   }
 
   /**
-   * Rewrite list elements into their canonical quoted form.
+   * Rewrite list elements into their canonical quoted form, and pin the DNS
+   * auto switch off.
    *
    * Quoting used to live only in writeList(), so a profile whose file carried
    * an unquoted entry containing a space — which Proxifier rejects outright —
    * stayed broken until that particular rule happened to be edited. Since
    * toXml() serialises the DOM verbatim, normalising on load is what makes
    * every subsequent save correct.
+   *
+   * <Options><Resolve><AutoModeDetection> lets Proxifier choose the name
+   * resolution mode by itself. When it settles on resolving through the proxy,
+   * names that GlobalProtect answers from the enterprise DNS it pushes — the
+   * corporate search domains — get resolved by the local SOCKS proxy instead,
+   * and internal hosts stop resolving. Pinning it to false leaves resolution
+   * with the system resolver, which is the one GP configures.
+   *
+   * Only the attribute of an <AutoModeDetection> that is already present is
+   * touched. Inventing the <Options>/<Resolve> subtree would mean guessing
+   * structure that has not been verified against Proxifier.
    */
   normalize() {
     for (const rule of this.rules()) {
@@ -232,6 +244,8 @@ export class Profile {
         if (el) writeList(rule.el, tag, splitList(el.text));
       }
     }
+    const autoDns = this.root.child('Options')?.child('Resolve')?.child('AutoModeDetection');
+    if (autoDns) autoDns.setAttr('enabled', 'false');
     return this;
   }
 

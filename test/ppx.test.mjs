@@ -162,6 +162,59 @@ check('emptyProfileXml keeps only Direct actions', empty.rules().every((r) => r.
 check('emptyProfileXml round-trips', Profile.parse(empty.toXml()).toXml(), empty.toXml());
 check('skeleton has no invented proxies', empty.proxies(), []);
 
+// --- normalize() pins the DNS auto switch off
+//
+// Left on, Proxifier may resolve names through the local SOCKS proxy, which
+// bypasses the enterprise DNS GlobalProtect pushes and breaks internal hosts.
+function testDnsNormalization() {
+  check(
+    'the skeleton pins the DNS auto switch off',
+    /<AutoModeDetection enabled="false"\/>/.test(emptyProfileXml()),
+    true,
+  );
+  check(
+    'the fixture starts with the DNS auto switch on',
+    /<AutoModeDetection enabled="true"\/>/.test(FIXTURE),
+    true,
+  );
+
+  const flipped = Profile.parse(FIXTURE);
+  check(
+    'normalize() turns the DNS auto switch off',
+    /<AutoModeDetection enabled="false"\/>/.test(flipped.toXml()),
+    true,
+  );
+  check(
+    'the DNS auto switch stays off across a round-trip',
+    /<AutoModeDetection enabled="false"\/>/.test(Profile.parse(flipped.toXml()).toXml()),
+    true,
+  );
+  // Flipping the switch must not flatten the rest of the Resolve block:
+  // ViaProxy still owns TryLocalDnsFirst as a child element.
+  check(
+    'ViaProxy still nests TryLocalDnsFirst afterwards',
+    /<ViaProxy enabled="false">\s*<TryLocalDnsFirst enabled="false"\/>/.test(flipped.toXml()),
+    true,
+  );
+  check(
+    'Exclude* stayed attributes of ExclusionList afterwards',
+    /<ExclusionList[^>]*ExcludeLocalDomain="true"/.test(flipped.toXml()),
+    true,
+  );
+
+  // A profile that never carried the node must not have one invented for it —
+  // guessing at the <Options>/<Resolve> shape is not something we verify.
+  const absent = FIXTURE.replace(/\s*<AutoModeDetection enabled="true"\/>/, '');
+  check('the stripped fixture really lost the node', absent.includes('AutoModeDetection'), false);
+  check(
+    'normalize() does not invent a missing node',
+    Profile.parse(absent).toXml().includes('AutoModeDetection'),
+    false,
+  );
+}
+
+testDnsNormalization();
+
 // --- list quoting: an entry with whitespace MUST be quoted, on every write path
 function testQuoting() {
   const q = Profile.parse(FIXTURE);

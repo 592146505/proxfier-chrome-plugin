@@ -123,7 +123,10 @@ export function createServer(cfg, { persist = true } = {}) {
             served: serve,
             fallback: serve !== name,
           };
-          return send(res, 200, store.readRaw(serve), {
+          // Serve the normalised profile rather than the raw file: this is the
+          // only content Proxifier sees, so a correction that exists only in
+          // the model has to be applied here to survive its next GUI edit.
+          return send(res, 200, store.readNormalized(serve), {
             'content-type': 'application/xml; charset=utf-8',
             'cache-control': 'no-store',
           });

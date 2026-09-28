@@ -92,6 +92,24 @@ const ppx = await fetch(`${base}/t/${cfg.token}/${NAME}.ppx`);
 const ppxText = await ppx.text();
 check('proxifier serves xml', [ppx.status, ppx.headers.get('content-type')], [200, 'application/xml; charset=utf-8']);
 check('served xml is a proxifier profile', ppxText.includes('<ProxifierProfile') && ppxText.includes('</ProxifierProfile>'), true);
+
+// The pull surface serves the normalised profile, so a value written into the
+// file behind the bridge's back — by Proxifier's own GUI, say — cannot reach
+// the client unnormalised.
+{
+  const target = store.profilePath(NAME);
+  const onDisk = fs.readFileSync(target, 'utf8');
+  check('the profile on disk has the DNS auto switch off', /<AutoModeDetection enabled="false"\/>/.test(onDisk), true);
+
+  fs.writeFileSync(target, onDisk.replace(/<AutoModeDetection[^>]*\/>/, '<AutoModeDetection enabled="true"/>'));
+  const pulled = await (await fetch(`${base}/t/${cfg.token}/${NAME}.ppx`)).text();
+  check(
+    'the pull surface re-applies the DNS auto switch',
+    /<AutoModeDetection enabled="false"\/>/.test(pulled),
+    true,
+  );
+}
+
 check('proxifier url with wrong token is hidden', (await fetch(`${base}/t/deadbeef/${NAME}.ppx`)).status, 404);
 
 // Proxifier requests `default.ppx` for its built-in profile, so an unknown
