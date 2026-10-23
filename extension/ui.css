@@ -103,6 +103,19 @@ button:disabled { opacity: .5; cursor: default; }
 .rules .idx { color: var(--dim); font-size: 11px; width: 16px; }
 
 .toast { padding: 8px 14px; font-size: 12px; }
+/* Options page is long; keep feedback visible wherever the user clicked. */
+.page #toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: min(640px, calc(100vw - 32px));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
 .toast.ok { color: var(--ok); }
 .toast.err { color: var(--danger); }
 .empty { color: var(--dim); padding: 16px; text-align: center; }
