@@ -60,15 +60,15 @@
   <section>
     <h2 style="margin-top:0">Proxies &amp; chains <span class="muted" id="chain-count"></span></h2>
     <ul class="rules" id="chains"></ul>
-    <div class="row" style="margin-top:8px">
+    <div class="proxy-form">
       <select id="px-type" title="Proxy type">
         <option>SOCKS5</option>
         <option>SOCKS4</option>
         <option>HTTPS</option>
         <option>HTTP</option>
       </select>
-      <input id="px-address" placeholder="127.0.0.1" style="flex:2">
-      <input id="px-port" type="number" min="1" max="65535" placeholder="7890" style="flex:1">
+      <input id="px-address" placeholder="Address, e.g. 127.0.0.1" title="Proxy address">
+      <input id="px-port" type="number" min="1" max="65535" placeholder="Port" title="Proxy port">
       <button id="px-save" class="primary">Add proxy</button>
       <button id="px-cancel" hidden>Cancel</button>
     </div>
