@@ -4,7 +4,7 @@
  * The popup and options pages never talk to the bridge directly, so the token
  * lives in exactly one place and CORS/permission handling stays in one file.
  */
-import { defaultBrowserApp, hostVariants } from './targets.js';
+import { defaultBrowserApp, hostVariants, mergeApplications } from './targets.js';
 
 const DEFAULTS = { bridgeUrl: 'http://127.0.0.1:47653', token: '' };
 
@@ -125,5 +125,36 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     getSettings().then(sendResponse);
     return true;
   }
+  if (msg?.type === 'pickApp') {
+    pickApp(msg.draft).then(sendResponse);
+    return true;
+  }
   return false;
 });
+
+/**
+ * The native dialog takes focus, which closes the popup, so the worker owns
+ * the request and writes the result into the saved draft for the popup to
+ * restore when it reopens.
+ */
+async function pickApp(draft) {
+  await chrome.storage.session.set({ ruleDraft: draft });
+  // An idle worker is stopped after ~30s; extension API calls reset that timer
+  // while the user browses for an application.
+  const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20_000);
+  let res;
+  try {
+    res = await api('/pick-app', { method: 'POST' });
+  } finally {
+    clearInterval(keepAlive);
+  }
+  if (res.ok && !res.data.cancelled) {
+    const next = { ...draft, apps: mergeApplications(draft.apps, res.data.entries) };
+    await chrome.storage.session.set({ ruleDraft: next });
+    res.data.apps = next.apps;
+  }
+  if (res.ok) {
+    chrome.action.openPopup().catch(() => badge('click to finish the rule', '#3fb950'));
+  }
+  return res;
+}

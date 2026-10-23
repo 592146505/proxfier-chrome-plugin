@@ -36,3 +36,12 @@ export function mergeTargets(existing, host) {
   }
   return { targets, added };
 }
+
+/** Append picked application entries to a "a; b" Applications field, case-insensitively deduplicated. */
+export function mergeApplications(field, entries) {
+  const apps = String(field ?? '').split(';').map((s) => s.trim()).filter(Boolean);
+  for (const entry of entries ?? []) {
+    if (!apps.some((a) => a.toLowerCase() === entry.toLowerCase())) apps.push(entry);
+  }
+  return apps.join('; ');
+}

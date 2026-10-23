@@ -14,6 +14,7 @@ import * as store from './store.js';
 import { Profile } from './ppx.js';
 import { triggerReload, probeReload } from './reload.js';
 import { findProxifierExe } from './platform.js';
+import { pickApplication } from './apppick.js';
 import { baseUrl, PROFILES_DIR, saveConfig } from './config.js';
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' };
@@ -183,6 +184,10 @@ export function createServer(cfg, { persist = true } = {}) {
 
       if (resource === 'doctor' && req.method === 'GET') {
         return send(res, 200, { reload: await probeReload({ exe: findProxifierExe({ cfg, exists: fs.existsSync }) }) }, cors);
+      }
+
+      if (resource === 'pick-app' && req.method === 'POST') {
+        return send(res, 200, await pickApplication(), cors);
       }
 
       if (resource === 'profiles' && !profileName) {

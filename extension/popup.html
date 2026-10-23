@@ -37,7 +37,13 @@
       <div><label for="f-name">Rule name</label><input id="f-name"></div>
       <div><label for="f-action">Action</label><select id="f-action"></select></div>
       <div><label for="f-targets">Targets (a.com; *.b.com; 1.2.3.4:443)</label><input id="f-targets"></div>
-      <div><label for="f-apps">Applications</label><input id="f-apps" value="Google Chrome"></div>
+      <div>
+        <label for="f-apps">Applications</label>
+        <div class="row">
+          <input id="f-apps" value="Google Chrome">
+          <button id="pick-app" class="add" title="Choose an application on this computer">＋</button>
+        </div>
+      </div>
     </div>
     <div id="action-hint" class="muted" hidden style="margin-top:6px"></div>
     <div class="row" style="margin-top:8px">

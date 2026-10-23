@@ -64,6 +64,42 @@ function openEditor(rule) {
 function closeEditor() {
   state.editing = null;
   $('#editor').hidden = true;
+  chrome.storage.session.remove('ruleDraft');
+}
+
+function currentDraft() {
+  return {
+    profile: state.profile,
+    index: state.editing?.index,
+    name: $('#f-name').value,
+    targets: $('#f-targets').value,
+    apps: $('#f-apps').value,
+    action: $('#f-action').value,
+  };
+}
+
+const splitField = (value) => String(value ?? '').split(';').map((s) => s.trim()).filter(Boolean);
+
+/** Reopen the editor the native app chooser closed the popup on. */
+async function restoreDraft() {
+  const { ruleDraft: draft } = await chrome.storage.session.get('ruleDraft');
+  if (!draft || draft.profile !== state.profile) return;
+  openEditor({
+    index: draft.index,
+    name: draft.name,
+    targets: splitField(draft.targets),
+    applications: splitField(draft.apps),
+    action: parseActionValue(draft.action),
+  });
+}
+
+async function pickApp() {
+  const res = await chrome.runtime.sendMessage({ type: 'pickApp', draft: currentDraft() });
+  // Only reached when the popup survived the dialog.
+  if (!res.ok) return toast(res.error, 'err');
+  if (res.data.cancelled) return;
+  $('#f-apps').value = res.data.apps;
+  toast(`Added ${res.data.name}`);
 }
 
 function renderRules(rules) {
@@ -235,6 +271,7 @@ async function init() {
 
   await loadProfiles();
   await loadProfile();
+  await restoreDraft();
 
   $('#profile').onchange = async (e) => {
     state.profile = e.target.value;
@@ -259,6 +296,7 @@ async function init() {
 
   $('#save').onclick = saveRule;
   $('#cancel').onclick = closeEditor;
+  $('#pick-app').onclick = pickApp;
   $('#settings').onclick = () => chrome.runtime.openOptionsPage();
   $('#reload').onclick = async () => {
     const res = await api('/reload', { method: 'POST' });

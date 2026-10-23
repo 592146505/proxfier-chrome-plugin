@@ -3,7 +3,8 @@
  *
  *   node test/targets.test.mjs
  */
-import { defaultBrowserApp, hostVariants, mergeTargets } from '../extension/targets.js';
+import { defaultBrowserApp, hostVariants, mergeApplications, mergeTargets } from '../extension/targets.js';
+import { appEntries } from '../bridge/apppick.js';
 
 let pass = 0;
 let fail = 0;
@@ -57,6 +58,16 @@ check('merge tolerates a missing list', mergeTargets(null, 'a.com'), {
   targets: ['a.com', '*.a.com'],
   added: 2,
 });
+
+check('picked app entries are appended', mergeApplications('Google Chrome', ['com.tinyspeck.slackmacgap', 'Slack']),
+  'Google Chrome; com.tinyspeck.slackmacgap; Slack');
+check('picked app entries are not duplicated', mergeApplications('google chrome; ', ['com.google.Chrome', 'Google Chrome']),
+  'google chrome; com.google.Chrome');
+check('an empty field takes the picked entries', mergeApplications('', ['chrome.exe']), 'chrome.exe');
+check('macOS app gives bundle id then executable', appEntries({ bundleId: 'com.google.Chrome', executable: 'Google Chrome' }),
+  ['com.google.Chrome', 'Google Chrome']);
+check('Windows app gives the exe name', appEntries({ exe: 'chrome.exe' }), ['chrome.exe']);
+check('identical entries collapse', appEntries({ bundleId: 'Foo', executable: 'foo' }), ['Foo']);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
