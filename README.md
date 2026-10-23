@@ -177,6 +177,10 @@ scoped to that bundle rather than to node.
   defines no proxies: add one in Proxifier via `Profile → Proxy Servers…`.
 - Rule order matters (Proxifier is first-match-wins) — new rules are inserted
   *before* the trailing `Default` catch-all.
+- Proxies are managed on the options page: add, edit (type / address / port),
+  or delete a SOCKS5, SOCKS4, HTTPS or HTTP proxy. A proxy still referenced by a
+  rule or chain cannot be deleted. Authentication and chains are still edited in
+  Proxifier; editing a proxy here leaves those settings untouched.
 - Right-click any page or link → *Proxifier: add rule for "…"*.
 
 Every write snapshots the previous revision to
@@ -261,6 +265,6 @@ test/
 | `node test/ppx.test.mjs` | profile model: parsing, round-trip, rule insertion |
 | `node test/connection.test.mjs` | options-page URL/token parsing |
 | `node test/actions.test.mjs` | rule Action dropdown (proxies vs chains) |
-| `node test/smoke.mjs` | bridge API: rule CRUD, auth, name fallback |
+| `node test/smoke.mjs` | bridge API: rule and proxy CRUD, auth, name fallback |
 | `npm test` | all of the above |
 | `npm run test:live` | live check against a running bridge + Proxifier |

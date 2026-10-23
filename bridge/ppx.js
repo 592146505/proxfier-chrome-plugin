@@ -8,6 +8,28 @@
 import { Element, parseXml, buildXml } from './xmldom.js';
 
 export const ACTION_TYPES = ['Direct', 'Block', 'Proxy'];
+export const PROXY_TYPES = ['SOCKS5', 'SOCKS4', 'HTTPS', 'HTTP'];
+
+function validProxyPatch(patch, { partial }) {
+  const out = {};
+  if (patch.type !== undefined || !partial) {
+    if (!PROXY_TYPES.includes(patch.type)) {
+      throw new Error(`invalid proxy type "${patch.type}" (expected ${PROXY_TYPES.join('|')})`);
+    }
+    out.type = patch.type;
+  }
+  if (patch.address !== undefined || !partial) {
+    const address = String(patch.address ?? '').trim();
+    if (!address || /[\s<>&;"]/.test(address)) throw new Error(`invalid proxy address "${address}"`);
+    out.address = address;
+  }
+  if (patch.port !== undefined || !partial) {
+    const port = Number(patch.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`invalid proxy port "${patch.port}"`);
+    out.port = String(port);
+  }
+  return out;
+}
 
 /**
  * Default skeleton used when creating a brand new profile from nothing.
@@ -344,6 +366,75 @@ export class Profile {
       name: c.child('Name')?.text ?? '',
       members: c.childrenNamed('Proxy').map((p) => p.attr('id')),
     }));
+  }
+
+  _proxyList() {
+    let list = this.root.child('ProxyList');
+    if (!list) {
+      list = new Element('ProxyList');
+      // Keep document order: ProxyList sits before ChainList/RuleList.
+      const before = this.root.children.findIndex(
+        (c) => c instanceof Element && (c.name === 'ChainList' || c.name === 'RuleList'),
+      );
+      if (before >= 0) this.root.children.splice(before, 0, list);
+      else this.root.children.push(list);
+    }
+    return list;
+  }
+
+  _proxyEl(id) {
+    const el = this._proxyList().childrenNamed('Proxy').find((p) => p.attr('id') === String(id));
+    if (!el) throw new Error(`proxy ${id} not found`);
+    return el;
+  }
+
+  /** Proxy and chain ids share one namespace, since a rule's Action can point at either. */
+  _nextId() {
+    const ids = [
+      ...this._proxyList().childrenNamed('Proxy'),
+      ...(this.root.child('ChainList')?.childrenNamed('Chain') ?? []),
+    ].map((el) => Number(el.attr('id'))).filter(Number.isFinite);
+    return String(Math.max(99, ...ids) + 1);
+  }
+
+  addProxy(proxy) {
+    const { type, address, port } = validProxyPatch(proxy, { partial: false });
+    const id = this._nextId();
+    // Same child layout Proxifier writes for an unauthenticated proxy.
+    const el = new Element('Proxy', { id, type }, [
+      new Element('Address', {}, []),
+      new Element('Port', {}, []),
+      new Element('Options', {}, []),
+    ]);
+    el.child('Address').setText(address);
+    el.child('Port').setText(port);
+    el.child('Options').setText('0');
+    this._proxyList().children.push(el);
+    return id;
+  }
+
+  /** Patches type/address/port only; authentication and other children survive untouched. */
+  updateProxy(id, patch) {
+    const el = this._proxyEl(id);
+    const valid = validProxyPatch(patch, { partial: true });
+    if (valid.type) el.setAttr('type', valid.type);
+    if (valid.address) (el.child('Address') ?? el.setChild(new Element('Address'))).setText(valid.address);
+    if (valid.port) (el.child('Port') ?? el.setChild(new Element('Port'))).setText(valid.port);
+    return true;
+  }
+
+  /** Refuses to delete a proxy that a rule or chain still points at. */
+  removeProxy(id) {
+    const el = this._proxyEl(id);
+    const key = String(id);
+    const rules = this.rules().filter((r) => r.action.type === 'Proxy' && r.action.id === key).map((r) => r.name);
+    const chains = this.chains().filter((c) => c.members.includes(key)).map((c) => c.name || c.id);
+    if (rules.length || chains.length) {
+      const users = [...rules.map((n) => `rule "${n}"`), ...chains.map((n) => `chain "${n}"`)];
+      throw new Error(`proxy ${key} is still used by ${users.join(', ')}`);
+    }
+    this._proxyList().removeChild(el);
+    return true;
   }
 
   toXml() {

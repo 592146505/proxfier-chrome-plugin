@@ -112,6 +112,26 @@ check('served xml is a proxifier profile', ppxText.includes('<ProxifierProfile')
 
 check('proxifier url with wrong token is hidden', (await fetch(`${base}/t/deadbeef/${NAME}.ppx`)).status, 404);
 
+{
+  const created = await asJson(await api(`/profiles/${NAME}/proxies`, {
+    method: 'POST',
+    body: JSON.stringify({ proxy: { type: 'SOCKS5', address: '127.0.0.1', port: 7890 } }),
+  }));
+  check('add proxy', [created.status, created.body?.id], [201, '100']);
+  const patched = await asJson(await api(`/profiles/${NAME}/proxies/100`, {
+    method: 'PATCH',
+    body: JSON.stringify({ patch: { port: 7891 } }),
+  }));
+  check('update proxy', patched.body?.proxies?.[0]?.port, '7891');
+  const bad = await api(`/profiles/${NAME}/proxies`, {
+    method: 'POST',
+    body: JSON.stringify({ proxy: { type: 'SOCKS5', address: 'x', port: 0 } }),
+  });
+  check('reject bad proxy port', bad.status, 400);
+  check('delete proxy', (await api(`/profiles/${NAME}/proxies/100`, { method: 'DELETE' })).status, 200);
+  check('deleted proxy is gone', (await api(`/profiles/${NAME}/proxies/100`, { method: 'DELETE' })).status, 404);
+}
+
 // Proxifier requests `default.ppx` for its built-in profile, so an unknown
 // name must fall back to the designated active profile instead of 404ing.
 check('unknown name 404s without an active profile', (await fetch(`${base}/t/${cfg.token}/default.ppx`)).status, 404);

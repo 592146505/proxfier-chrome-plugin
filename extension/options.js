@@ -3,7 +3,7 @@ import { chainLabel, proxyLabel } from './actions.js';
 
 const $ = (sel) => document.querySelector(sel);
 
-let state = { profile: null };
+let state = { profile: null, editingProxy: null };
 
 async function api(path, opts = {}) {
   return chrome.runtime.sendMessage({ type: 'api', path, ...opts });
@@ -113,13 +113,23 @@ async function loadDetail() {
   $('#chains').innerHTML = '';
   if (!proxies.length && !chains.length) {
     $('#chains').innerHTML =
-      '<li class="empty">No proxies — add them in Proxifier (Profile → Proxy Servers…), then reload here.</li>';
+      '<li class="empty">No proxies yet — add one below.</li>';
   }
   for (const p of proxies) {
     const li = document.createElement('li');
     li.innerHTML =
       `<span class="idx">${esc(p.id ?? '')}</span><div class="name">${esc(proxyLabel(p))}` +
       `<span class="targets">proxy id ${esc(p.id ?? '?')} — a rule's Action points at this id</span></div>`;
+    const edit = document.createElement('button');
+    edit.textContent = '✎';
+    edit.title = 'Edit proxy';
+    edit.onclick = () => editProxy(p);
+    const del = document.createElement('button');
+    del.className = 'danger';
+    del.textContent = '✕';
+    del.title = 'Delete proxy';
+    del.onclick = () => deleteProxy(p);
+    li.append(edit, del);
     $('#chains').append(li);
   }
   for (const c of chains) {
@@ -159,6 +169,53 @@ async function loadRaw() {
   const res = await api(`/profiles/${encodeURIComponent(state.profile)}/raw`, { as: 'text' });
   if (!res.ok) return toast(res.error, 'err');
   $('#raw').value = res.data;
+}
+
+function resetProxyForm() {
+  state.editingProxy = null;
+  $('#px-type').value = 'SOCKS5';
+  $('#px-address').value = '';
+  $('#px-port').value = '';
+  $('#px-save').textContent = 'Add proxy';
+  $('#px-cancel').hidden = true;
+}
+
+function editProxy(p) {
+  state.editingProxy = p.id;
+  $('#px-type').value = p.type ?? 'SOCKS5';
+  $('#px-address').value = p.address ?? '';
+  $('#px-port').value = p.port ?? '';
+  $('#px-save').textContent = `Save proxy ${p.id}`;
+  $('#px-cancel').hidden = false;
+  $('#px-address').focus();
+}
+
+async function saveProxy() {
+  if (!state.profile) return toast('Select a profile first', 'err');
+  const proxy = {
+    type: $('#px-type').value,
+    address: $('#px-address').value.trim(),
+    port: Number($('#px-port').value),
+  };
+  const base = `/profiles/${encodeURIComponent(state.profile)}/proxies`;
+  const res = state.editingProxy
+    ? await api(`${base}/${encodeURIComponent(state.editingProxy)}`, { method: 'PATCH', body: { patch: proxy } })
+    : await api(base, { method: 'POST', body: { proxy } });
+  if (!res.ok) return toast(res.error, 'err');
+  toast(state.editingProxy ? `Proxy ${state.editingProxy} updated` : `Proxy ${res.data.id} added`);
+  resetProxyForm();
+  await loadDetail();
+}
+
+async function deleteProxy(p) {
+  if (!confirm(`Delete proxy ${proxyLabel(p)}? A backup snapshot is kept.`)) return;
+  const res = await api(`/profiles/${encodeURIComponent(state.profile)}/proxies/${encodeURIComponent(p.id)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) return toast(res.error, 'err');
+  if (state.editingProxy === p.id) resetProxyForm();
+  toast('Proxy deleted');
+  await loadDetail();
 }
 
 const esc = (s) =>
@@ -226,6 +283,7 @@ function init() {
 
   $('#profiles').onchange = async (e) => {
     state.profile = e.target.value;
+    resetProxyForm();
     await chrome.storage.local.set({ activeProfile: state.profile });
     await api('/active', { method: 'POST', body: { name: state.profile } });
     await loadDetail();
@@ -266,6 +324,8 @@ function init() {
   };
 
   $('#raw-load').onclick = loadRaw;
+  $('#px-save').onclick = saveProxy;
+  $('#px-cancel').onclick = resetProxyForm;
 
   $('#raw-save').onclick = async () => {
     if (!state.profile) return toast('Select a profile first', 'err');

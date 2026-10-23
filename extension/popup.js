@@ -43,7 +43,7 @@ function renderActions(selected) {
   } else {
     hint.textContent =
       'This profile defines no proxies or chains, so only Direct and Block are available. ' +
-      'Add a proxy in Proxifier (Profile → Proxy Servers…), then reload here.';
+      'Add a proxy in the extension options (⚙ → Proxies), then reopen this popup.';
     hint.hidden = false;
   }
 }

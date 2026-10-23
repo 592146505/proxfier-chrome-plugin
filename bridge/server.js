@@ -266,6 +266,23 @@ export function createServer(cfg, { persist = true } = {}) {
         return send(res, 200, { ok: true, backup, rules: profile.rules().map((r) => r.toJSON()) }, cors);
       }
 
+      if (sub === 'proxies') {
+        const profile = store.load(profileName);
+        const body = req.method === 'POST' || req.method === 'PATCH' ? await readBody(req) : {};
+        let id = arg;
+        if (arg === undefined && req.method === 'POST') {
+          id = profile.addProxy(body.proxy ?? {});
+        } else if (arg !== undefined && req.method === 'PATCH') {
+          profile.updateProxy(arg, body.patch ?? {});
+        } else if (arg !== undefined && req.method === 'DELETE') {
+          profile.removeProxy(arg);
+        } else {
+          return send(res, 405, { error: `${req.method} not allowed` }, cors);
+        }
+        const { backup } = store.save(profileName, profile, { reason: `proxy-${req.method.toLowerCase()}` });
+        return send(res, req.method === 'POST' ? 201 : 200, { ok: true, backup, id, proxies: profile.proxies() }, cors);
+      }
+
       if (sub === 'backups') {
         if (req.method === 'GET') return send(res, 200, { backups: store.listBackups(profileName) }, cors);
         if (req.method === 'POST') {

@@ -290,5 +290,31 @@ function testQuoting() {
 
 testQuoting();
 
+function testProxies() {
+  const p = Profile.parse(FIXTURE);
+  const id = p.addProxy({ type: 'HTTP', address: '10.0.0.2', port: '8080' });
+  check('addProxy picks the next free id', id, '101');
+  check('addProxy writes Proxifier child layout', p.proxies().find((x) => x.id === id), {
+    id: '101', type: 'HTTP', address: '10.0.0.2', port: '8080',
+    fields: { Address: '10.0.0.2', Port: '8080', Options: '0' },
+  });
+  const empty = Profile.empty();
+  check('addProxy works on an empty ProxyList', empty.addProxy({ type: 'SOCKS5', address: '127.0.0.1', port: 1080 }), '100');
+  check('new ProxyList proxies round-trip', Profile.parse(empty.toXml()).proxies().length, 1);
+
+  p.updateProxy('100', { port: 7891 });
+  check('updateProxy patches the port only', [p.proxies()[0].type, p.proxies()[0].address, p.proxies()[0].port], ['SOCKS5', '127.0.0.1', '7891']);
+
+  const throws = (fn) => { try { fn(); return false; } catch { return true; } };
+  check('invalid proxy type is rejected', throws(() => p.addProxy({ type: 'FTP', address: 'a', port: 1 })), true);
+  check('invalid proxy port is rejected', throws(() => p.updateProxy('100', { port: 70000 })), true);
+  check('blank proxy address is rejected', throws(() => p.addProxy({ type: 'HTTP', address: ' ', port: 80 })), true);
+  check('a proxy used by a rule cannot be deleted', throws(() => p.removeProxy('100')), true);
+  check('an unused proxy can be deleted', p.removeProxy('101'), true);
+  check('unknown proxy id is reported', throws(() => p.updateProxy('999', { port: 1 })), true);
+}
+
+testProxies();
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
