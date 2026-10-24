@@ -1,5 +1,5 @@
 import { actionOptions, actionValue, hasProxyTargets, parseActionValue } from './actions.js';
-import { defaultBrowserApp, hostVariants, mergeTargets } from './targets.js';
+import { hostVariants, mergeTargets } from './targets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -56,7 +56,7 @@ function openEditor(rule) {
   state.editing = rule;
   $('#f-name').value = rule.name ?? '';
   $('#f-targets').value = (rule.targets ?? []).join('; ');
-  $('#f-apps').value = (rule.applications ?? []).join('; ') || defaultBrowserApp();
+  $('#f-apps').value = (rule.applications ?? []).join('; ');
   renderActions(rule.action);
   $('#editor').hidden = false;
 }
@@ -289,7 +289,7 @@ async function init() {
     openEditor({
       name: state.host.replace(/^www\./, ''),
       targets: hostVariants(state.host),
-      applications: [defaultBrowserApp()],
+      applications: [],
       action: target ? { type: 'Proxy', id: target.id } : { type: 'Direct' },
     });
   };
